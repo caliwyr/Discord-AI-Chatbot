@@ -112,19 +112,21 @@ async def poly_image_gen(session, prompt):
 #         async with session.get(url) as response:
 #             return await response.read()
 
-# async def dall_e_gen(prompt, size):
-#     response = await openai.Image.create(prompt=prompt, n=1, size=size)
-
-#     image_urls = [data['url'] for data in response['data']]
-    
-#     image_data_list =[]
-    
-#     for url in image_urls:
-#         print(url)
-#         data = await fetch_image_data(url)
-#         image_data_list.append(data)
-
-#     return image_data_list
+async def dall_e_gen(prompt, size, num_images):
+    response = openai.Image.create(
+        prompt=prompt,
+        n=num_images,
+        size=size,
+    )
+    imagefileobjs = []
+    for image in response["data"]:
+        image_url = image["url"]
+        async with aiohttp.ClientSession() as session:
+            async with session.get(image_url) as response:
+                content = await response.content.read()
+                img_file_obj = io.BytesIO(content)
+                imagefileobjs.append(img_file_obj)
+    return imagefileobjs
     
 
 async def generate_job(prompt, seed=None):
@@ -136,7 +138,7 @@ async def generate_job(prompt, seed=None):
     params = {
         'new': 'true',
         'prompt': f'{quote(prompt)}',
-        'model': 'anything-v4.5-pruned.ckpt [65745d25]',
+        'model': 'dreamshaper_6BakedVae.safetensors [114c8abb]',
         'negative_prompt': '(nsfw:1.5),verybadimagenegative_v1.3, ng_deepnegative_v1_75t, (ugly face:0.8),cross-eyed,sketches, (worst quality:2), (low quality:2), (normal quality:2), lowres, normal quality, ((monochrome)), ((grayscale)), skin spots, acnes, skin blemishes, bad anatomy, DeepNegative, facing away, tilted head, {Multiple people}, lowres, bad anatomy, bad hands, text, error, missing fingers, extra digit, fewer digits, cropped, worstquality, low quality, normal quality, jpegartifacts, signature, watermark, username, blurry, bad feet, cropped, poorly drawn hands, poorly drawn face, mutation, deformed, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, extra fingers, fewer digits, extra limbs, extra arms,extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed,mutated hands, polar lowres, bad body, bad proportions, gross proportions, text, error, missing fingers, missing arms, missing legs, extra digit, extra arms, extra leg, extra foot, repeating hair',
         'steps': '30',
         'cfg': '9.5',
